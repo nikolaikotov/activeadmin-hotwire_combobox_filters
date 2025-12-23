@@ -1,6 +1,6 @@
 <%= combobox_style_tag %>
-<style>
-  [role='combobox'] {
+<style nonce="<%= content_security_policy_nonce %>">
+  .hw-combobox__input {
     background-color: inherit;
   }
   .dark:root {

@@ -10,7 +10,33 @@ gem "activeadmin-hotwire_combobox_filters"
 
 # Usage
 
-The gem automatically replaces the default ActiveAdmin filters with hotwire_combobox filters after being required and configured.
+The gem automatically replaces the default ActiveAdmin filters with
+`hotwire_combobox` filters once it is required and configured.
+
+### `search_fields` option
+
+You can specify which association fields are used for searching as you type into the combobox, for example:
+
+```ruby
+filter :parent_company, search_fields: %i[name short_name code]
+
+f.input :parent_company, search_fields: %i[name short_name code]
+```
+
+This will search the associated records by the `name`, `short_name` or `code` attributes. If `search_fields` is not set, the first available ActiveAdmin display method is used in the following order: `display_name`, `full_name`, `name`, `username`, `login`, `title`, `email` or `to_s`.
+
+### `url` option
+
+You can provide your own search logic, for example:
+
+```ruby
+filter :parent_company,
+       url: ->(params) { my_combobox_search_admin_companies_path(params) }
+```
+
+See [lib/activeadmin_hotwire_combobox_filters/dsl.rb](lib/activeadmin_hotwire_combobox_filters/dsl.rb) for an example implementation of a search method.
+
+# Setup
 
 The gem requires ActiveAdmin to be wired up with Hotwire.
 

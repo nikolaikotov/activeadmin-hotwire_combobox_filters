@@ -4,38 +4,28 @@ module ActiveAdminHotwireComboboxFilters
 
     def run_registration_block(&block) # rubocop:disable Metrics/AbcSize, Metrics/MethodLength
       resource_class = config.resource_class
-      unless resource_class.respond_to?(:to_combobox_display)
+
+      unless resource_class.public_method_defined?(:to_combobox_display)
         resource_class.class_eval do
-          define_method :to_combobox_display do
-            method = DISPLAY_NAME_METHODS.find { |m| self.respond_to?(m) }
-            self.public_send(method) if method.present?
-          end
+          method = DISPLAY_NAME_METHODS.find { |m| public_method_defined?(m) } ||
+                   raise(StandardError, "#{resource_class} class lacks to_combobox_display or some display name method")
+          alias_method :to_combobox_display, method
         end
       end
 
       new_block = proc do
-        collection_action :combobox_search, method: :get do
-          method = (resource_class.attribute_aliases.keys & DISPLAY_NAME_METHODS).first
-          method = if resource_class.column_names.include?(resource_class.attribute_aliases[method])
-                     resource_class.attribute_aliases[method]
-                   else
-                     (DISPLAY_NAME_METHODS & resource_class.column_names).first
-                   end
-          if method.blank?
-            raise NoMethodError,
-                  "No display method found for #{resource_class.name}. Methods searched: #{DISPLAY_NAME_METHODS.join(', ')}"
+        unless controller.action_methods.include?("combobox_search")
+          collection_action :combobox_search, method: :get do
+            search_fields = params.require(:search_fields)
+            scope = active_admin_authorization.scope_collection(resource_class)
+            scope = scope.ordered if resource_class.respond_to?(:ordered)
+            scope = scope.ransack("#{search_fields.join("_or_")}_cont" => params[:q]).result if params[:q].present?
+            scope = scope.page(params[:page]).per(Kaminari.config.default_per_page)
+            combobox_results = scope.to_a
+            next_page = scope.next_page
+
+            render turbo_stream: helpers.async_combobox_options(combobox_results, next_page:)
           end
-
-          current_user = send(ActiveAdmin.application.current_user_method)
-          @records = Pundit.policy_scope!(current_user, resource_class)
-          @records = @records.ordered if resource_class.respond_to?(:ordered)
-          @records = @records.ransack("#{method}_cont" => params[:q]).result if params[:q].present?
-          @records = @records.page(params[:page]).per(Kaminari.config.default_per_page)
-
-          @combobox_results = @records.pluck(method, :id)
-          @next_page = @records.next_page
-          render "activeadmin_hotwire_combobox_filters/combobox_search",
-                 locals: { combobox_results: @combobox_results, next_page: @next_page }
         end
 
         instance_exec(&block) if block
