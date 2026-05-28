@@ -19,7 +19,7 @@ module ActiveAdminHotwireComboboxFilters
             search_fields = params.require(:search_fields)
             scope = active_admin_authorization.scope_collection(resource_class)
             scope = scope.ordered if resource_class.respond_to?(:ordered)
-            scope = scope.ransack("#{search_fields.join("_or_")}_cont" => params[:q]).result if params[:q].present?
+            scope = ComboboxSearcher.new(scope:, term: params[:q], fields: search_fields).perform if params[:q].present?
             scope = scope.page(params[:page]).per(Kaminari.config.default_per_page)
             combobox_results = scope.to_a
             next_page = scope.next_page
