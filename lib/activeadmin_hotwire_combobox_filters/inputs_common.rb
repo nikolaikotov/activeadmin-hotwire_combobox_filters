@@ -12,6 +12,7 @@ module ActiveAdminHotwireComboboxFilters::InputsCommon
   end
 
   def prepare_search_fields_params(search_fields)
+    search_fields ||= reflection&.klass&.try(:hw_search_fields)
     search_fields = search_fields&.then { |fields| Array(fields) } || [default_search_field]
 
     { search_fields: }
