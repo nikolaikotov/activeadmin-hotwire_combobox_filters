@@ -13,7 +13,9 @@ module ActiveAdmin
           template.instance_variable_set(:@aa_hw_combobox_styles_rendered, true)
         end
 
-        res << builder.combobox(input_name, path_or_collection)
+        combobox_args = @options.fetch(:combobox_args, {})
+
+        res << builder.combobox(input_name, path_or_collection, **combobox_args)
       end
     end
   end
