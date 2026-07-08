@@ -18,7 +18,11 @@ module ActiveAdminHotwireComboboxFilters
           collection_action :combobox_search, method: :get do
             search_fields = params.require(:search_fields)
             scope = active_admin_authorization.scope_collection(resource_class)
-            scope = scope.public_send(params[:scope]) if params[:scope].present? && scope.respond_to?(params[:scope])
+            if params[:scope].present? &&
+                scope.try(:allowed_combobox_scopes)&.include?(params[:scope]) &&
+                scope.respond_to?(params[:scope])
+              scope = scope.public_send(params[:scope])
+            end
             scope = scope.ordered if resource_class.respond_to?(:ordered)
             scope = SearchByFields.new(scope:, term: params[:q], fields: search_fields).perform if params[:q].present?
             scope = scope.page(params[:page]).per(Kaminari.config.default_per_page)
